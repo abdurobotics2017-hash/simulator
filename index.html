@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>X-ZERO Web Simulator</title>
+<style>
+:root{--bg:#0e1217;--panel:#161c24;--panel2:#1d2530;--line:#2a3544;--tx:#e6ebf2;--mut:#8896a8;--acc:#ff6a2b;--ok:#2bd4a0;--bad:#ff4d5e;--cy:#32c8e8}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:13.5px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0}header h1 span{color:var(--acc)}
+header small{color:var(--mut)}
+.sp{flex:1}
+button,select,input{font:inherit;color:var(--tx)}
+button,select{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:#47586f}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.on{border-color:var(--ok);background:#233a39}
+button:disabled{opacity:.4;cursor:default}
+main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;padding:12px;max-width:1500px;margin:0 auto}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+.card h2{font-size:11.5px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut)}
+.bar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px}
+#cv{width:100%;display:block;border-radius:8px;touch-action:none}
+.sens{display:flex;gap:3px;margin:8px 0 2px}
+.sens i{flex:1;height:14px;border-radius:3px;background:#27313f;border:1px solid #394658}
+.sens i.on{background:var(--cy);border-color:#7be0f5;box-shadow:0 0 6px #32c8e888}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;margin-top:8px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+.stat span{display:block;color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.stat b{font-size:15px;font-variant-numeric:tabular-nums}
+.side{display:flex;flex-direction:column;gap:12px}
+#stepNow{font-weight:600;font-size:14px;margin-bottom:4px}
+#msg{font-size:12.5px;min-height:18px}
+#log{list-style:none;margin:6px 0 0;padding:0;font:12px/1.35 ui-monospace,Consolas,monospace;max-height:170px;overflow:auto}
+#log li{padding:2px 0;border-bottom:1px dashed var(--line);color:#b9c4d2}
+#log li b{color:var(--cy);font-weight:600}
+details{margin-bottom:6px}
+summary{cursor:pointer;font-weight:600;padding:3px 0}
+.row{display:grid;grid-template-columns:1fr 56px;gap:1px 8px;margin:6px 0}
+.row output{text-align:right;color:var(--ok);font-variant-numeric:tabular-nums}
+.row input[type=range]{grid-column:1/3;width:100%;accent-color:var(--acc)}
+table.pid{border-collapse:collapse;width:100%}
+table.pid td,table.pid th{white-space:nowrap;padding:2px 3px;font-size:12px;text-align:center}
+table.pid input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:3px 4px;text-align:right}
+.note{color:var(--mut);font-size:12px}
+.note ul{margin:4px 0 0 16px;padding:0}
+.chk{display:flex;gap:6px;align-items:center;margin:5px 0}
+/* editor */
+.editor{max-width:1500px;margin:0 auto;padding:0 12px 20px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.tabs button{padding:5px 10px}
+.tabs button.cur{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.tabs button.run{box-shadow:inset 0 -3px 0 var(--ok)}
+.tw{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:8px}
+table.plan{border-collapse:collapse;width:max-content;min-width:100%}
+table.plan th{position:sticky;top:0;z-index:2;font-size:10.5px;padding:5px 4px;color:#14181d;white-space:nowrap}
+table.plan td{padding:2px 3px;border-bottom:1px solid #212b38;background:#10161d}
+table.plan tr.act td{background:#24394a;box-shadow:inset 0 0 0 1px #32c8e855}
+table.plan tr.sel td{outline:1px solid #ff6a2b55}
+table.plan td.idx{text-align:center;color:var(--mut);cursor:pointer;min-width:42px}
+table.plan td.idx.hl{color:var(--cy);font-weight:700}
+table.plan input,table.plan select{width:100%;background:#1a222d;border:1px solid #2a3544;border-radius:4px;padding:3px 4px;font-size:12px}
+table.plan input[type=number]{width:62px;text-align:right}
+table.plan select.sn{min-width:230px;font-family:ui-monospace,Consolas,monospace}
+table.plan input:disabled,table.plan select:disabled{opacity:.35}
+.unit{font-size:10px;color:var(--mut);margin-left:2px}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#243142;border:1px solid #47586f;padding:9px 16px;border-radius:9px;opacity:0;transition:.25s;pointer-events:none;z-index:9;max-width:90vw}
+.toast.show{opacity:1}
+textarea{width:100%;height:90px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--tx);font:11px ui-monospace,monospace}
+</style>
+</head>
+<body>
+<header>
+  <h1>X-ZERO <span>Web Simulator</span></h1>
+  <small>Jalankan program Plan (1–12) pada robot virtual · 16 sensor · fisika motor, bobot &amp; grip</small>
+  <span class="sp"></span>
+  <select id="selExample"><option value="">Contoh program…</option><option value="follow">Ikuti garis (oval)</option><option value="junction">Belok di persimpangan</option><option value="fork">Ambil cabang kiri</option></select>
+  <button id="bImport">📂 Impor .xlsx / .json</button>
+  <button id="bCopy">📋 Salin JSON</button>
+  <button id="bXlsx">⬇ Unduh .xlsx</button>
+  <input type="file" id="fileIn" accept=".xlsx,.xls,.json" hidden>
+</header>
+
+<main>
+  <section class="card">
+    <div class="bar">
+      <button id="bStart" class="pri">▶ Jalankan</button>
+      <button id="bStep" title="Jalankan sampai index berikutnya">⏭ Langkah</button>
+      <button id="bReset">↺ Reset</button>
+      <select id="selTrack"></select>
+      <select id="selLine" title="Warna garis di lintasan"><option value="BLACK">Garis hitam</option><option value="WHITE">Garis putih</option></select>
+      <button id="bDraw">✏️ Gambar</button>
+      <span class="sp"></span>
+      <button id="bRotL" title="Putar robot −15° (saat berhenti)">⟲</button>
+      <button id="bRotR" title="Putar robot +15° (saat berhenti)">⟳</button>
+      <select id="selSpeed" title="Kecepatan simulasi"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select>
+    </div>
+    <canvas id="cv"></canvas>
+    <div class="sens" id="sensBar"></div>
+    <div class="stats">
+      <div class="stat"><span>Status</span><b id="stStatus">Siap</b></div>
+      <div class="stat"><span>Waktu</span><b id="stT">0.00 s</b></div>
+      <div class="stat"><span>Jarak</span><b id="stD">0 cm</b></div>
+      <div class="stat"><span>Kecepatan</span><b id="stV">0.00 m/s</b></div>
+      <div class="stat"><span>PWM kiri / kanan</span><b id="stP">0 / 0</b></div>
+      <div class="stat"><span>Plan · Index</span><b id="stPC">1 · 0</b></div>
+    </div>
+    <p class="note" style="margin:8px 0 0">Saat berhenti, seret robot di kanvas untuk memindahkan posisi awal. Spasi = jalankan/jeda.</p>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <h2>Eksekusi program</h2>
+      <div id="stepNow">—</div>
+      <div id="msg" class="note"></div>
+      <ul id="log"></ul>
+    </div>
+    <div class="card">
+      <h2>Pengaturan</h2>
+      <details open><summary>PID 1–5 (kolom PID)</summary>
+        <table class="pid"><thead><tr><th></th><th>Kp</th><th>Ki</th><th>Kd</th></tr></thead><tbody id="pidBody"></tbody></table>
+        <p class="note">Dipakai saat ACTION = FORWARD dengan MODE ACTION = AUTO.</p>
+      </details>
+      <details><summary>Fisika robot</summary><div id="gRobot"></div></details>
+      <details><summary>Interpretasi program</summary>
+        <label class="note">Urutan sensor/delay
+          <select id="selOrder" style="width:100%;margin-top:3px"><option value="auto">Otomatis (maju: sensor→delay, belok: delay→sensor)</option><option value="sensor">Selalu sensor dulu, lalu delay</option><option value="delay">Selalu delay dulu, lalu sensor</option></select></label>
+        <label class="chk"><input type="checkbox" id="cEdge"> Sensor harus lepas dulu sebelum terpicu (pemicu tepi)</label>
+      </details>
+      <details><summary>Asumsi perilaku firmware</summary>
+        <div class="note"><ul>
+          <li><b>FORWARD</b> AUTO: ikuti garis dengan PID; kecepatan = rata-rata LEFT/RIGHT (PWM 0–255). MANUAL / BACKWARD: PWM LEFT &amp; RIGHT dipakai apa adanya.</li>
+          <li><b>DELAY</b>: cm untuk FORWARD/BACKWARD, ms untuk TURN &amp; PAUSE.</li>
+          <li><b>MOTION SENSOR</b>: langkah menunggu pola sensor terpenuhi (OR = salah satu; XR/EQ = tiap kelompok ada yang aktif; XN = persis sama), lalu menjalankan DELAY. Pada TURN: DELAY dulu, baru menunggu sensor.</li>
+          <li><b>JUMP TO PLAN</b>: LEFT = plan (1–12), RIGHT = index tujuan. Jika sensor dipilih, lompat hanya bila pola cocok.</li>
+          <li><b>FOLLOW</b>: CENTER = pusat semua sensor aktif; LEFT/RIGHT = ikuti kelompok sensor paling kiri/kanan (cabang).</li>
+          <li><b>SPEED A / TIMER A</b>: kecepatan awal selama TIMER A cm. <b>SPEED B / TIMER B</b>: pelan di TIMER B cm terakhir (hanya TYPE SB = LOCK). FREE: roda meluncur saat berhenti.</li>
+          <li><b>CAL</b> tidak berpengaruh (sensor ideal). FAN &amp; GRIPPER hanya ditampilkan di robot.</li>
+        </ul></div>
+      </details>
+    </div>
+  </aside>
+</main>
+
+<section class="editor card">
+  <h2>Editor program</h2>
+  <div class="tabs" id="tabs"></div>
+  <div class="bar">
+    <button id="bAdd">＋ Tambah index</button>
+    <button id="bDup">⧉ Duplikat</button>
+    <button id="bUp">▲</button><button id="bDown">▼</button>
+    <button id="bDel">🗑 Hapus</button>
+    <button id="bClear">Kosongkan plan</button>
+    <span class="note" id="selInfo">Klik nomor INDEX untuk memilih baris.</span>
+  </div>
+  <div class="tw"><table class="plan" id="planTbl"></table></div>
+  <details style="margin-top:8px"><summary>Tempel JSON program</summary>
+    <textarea id="jsonBox" placeholder='{"plans":[[...],[...]]}'></textarea>
+    <button id="bJsonLoad" style="margin-top:6px">Muat JSON</button>
+  </details>
+</section>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ===== CORE: fisika robot + interpreter Plan (tanpa DOM, bisa diuji di Node) =====
+const Sim=(function(){
+const W=900,H=600,CELL=3,HW=7,PXM=400,PXCM=4,G=9.81*PXM,CAP=40;
+const DT=0.0025,CTRL_EVERY=2,NS=16;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+/* ---------- geometri lintasan ---------- */
+function cr(p0,p1,p2,p3,n){
+  const d=(a,b)=>Math.max(Math.sqrt(Math.hypot(b[0]-a[0],b[1]-a[1])),1e-4);
+  const t0=0,t1=d(p0,p1),t2=t1+d(p1,p2),t3=t2+d(p2,p3),out=[];
+  for(let i=0;i<n;i++){
+    const t=t1+(t2-t1)*i/n;
+    const L=(a,b,ta,tb)=>[(tb-t)/(tb-ta)*a[0]+(t-ta)/(tb-ta)*b[0],(tb-t)/(tb-ta)*a[1]+(t-ta)/(tb-ta)*b[1]];
+    const A1=L(p0,p1,t0,t1),A2=L(p1,p2,t1,t2),A3=L(p2,p3,t2,t3);
+    out.push(L(L(A1,A2,t0,t2),L(A2,A3,t1,t3),t1,t2));
+  }
+  return out;
+}
+function smoothClosed(c){const n=c.length,o=[];for(let i=0;i<n;i++)o.push(...cr(c[(i-1+n)%n],c[i],c[(i+1)%n],c[(i+2)%n],24));return o;}
+function smoothOpen(c){
+  const n=c.length,o=[],e=[c[0],...c,c[n-1]];
+  for(let i=1;i<n;i++)o.push(...cr(e[i-1],e[i],e[i+1],e[i+2],24));
+  o.push(c[n-1]);return o;
+}
+function resample(poly,ds,closed=true){
+  const n=poly.length,cum=[0],m=closed?n:n-1;
+  for(let i=0;i<m;i++){const a=poly[i],b=poly[(i+1)%n];cum.push(cum[i]+Math.hypot(b[0]-a[0],b[1]-a[1]));}
+  const L=cum[m],N=Math.max(4,Math.round(L/ds)),out=[],cnt=closed?N:N+1;let j=0;
+  for(let k=0;k<cnt;k++){
+    const s=L*k/N;
+    while(j<m-1&&cum[j+1]<s)j++;
+    const a=poly[j],b=poly[(j+1)%n],f=clamp((s-cum[j])/Math.max(cum[j+1]-cum[j],1e-9),0,1);
+    out.push([a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]);
+  }
+  return {pts:out,L};
+}
+function roundRect(x0,y0,x1,y1,r){
+  const pts=[],arc=(cx,cy,a0)=>{for(let i=0;i<=8;i++){const a=a0+i/8*Math.PI/2;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}};
+  arc(x1-r,y0+r,-Math.PI/2);arc(x1-r,y1-r,0);arc(x0+r,y1-r,Math.PI/2);arc(x0+r,y0+r,Math.PI);
+  return pts;
+}
+/* lines: [{pts:[[x,y]..], closed:bool}] */
+function buildTrack(def){
+  const lines=def.lines.map(l=>({closed:l.closed,pts:resample(l.pts,3,l.closed).pts}));
+  const gw=Math.ceil(W/CELL)+1,gh=Math.ceil(H/CELL)+1,grid=new Float32Array(gw*gh).fill(CAP);
+  for(const ln of lines){
+    const P=ln.pts,N=P.length,M=ln.closed?N:N-1;
+    for(let i=0;i<M;i++){
+      const a=P[i],b=P[(i+1)%N],dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy||1e-9;
+      const x0=Math.max(0,Math.floor((Math.min(a[0],b[0])-CAP)/CELL)),x1=Math.min(gw-1,Math.ceil((Math.max(a[0],b[0])+CAP)/CELL));
+      const y0=Math.max(0,Math.floor((Math.min(a[1],b[1])-CAP)/CELL)),y1=Math.min(gh-1,Math.ceil((Math.max(a[1],b[1])+CAP)/CELL));
+      for(let gy=y0;gy<=y1;gy++)for(let gx=x0;gx<=x1;gx++){
+        const px=gx*CELL,py=gy*CELL,t=clamp(((px-a[0])*dx+(py-a[1])*dy)/l2,0,1);
+        const d=Math.hypot(px-(a[0]+dx*t),py-(a[1]+dy*t)),k=gy*gw+gx;
+        if(d<grid[k])grid[k]=d;
+      }
+    }
+  }
+  const P0=lines[0].pts;
+  const start=def.start||{x:P0[0][0],y:P0[0][1],th:Math.atan2(P0[1][1]-P0[0][1],P0[1][0]-P0[0][0])};
+  return {lines,grid,gw,gh,start,lineColor:def.lineColor||'BLACK',name:def.name};
+}
+function dist(T,x,y){
+  const fx=x/CELL,fy=y/CELL;
+  if(fx<0||fy<0||fx>=T.gw-1||fy>=T.gh-1)return CAP;
+  const ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,g=T.grid,w=T.gw,k=iy*w+ix;
+  return (g[k]*(1-tx)+g[k+1]*tx)*(1-ty)+(g[k+w]*(1-tx)+g[k+w+1]*tx)*ty;
+}
+const TRACK_DEFS={
+ oval:{name:'Oval bergelombang',build:()=>{const a=[];for(let i=0;i<16;i++){const t=i/16*2*Math.PI,r=1+0.13*Math.cos(3*t);a.push([450+r*340*Math.cos(t),300+r*205*Math.sin(t)]);}
+   return {lines:[{pts:smoothClosed(a),closed:true}],start:{x:450+1.13*340*Math.cos(Math.PI/2*0)+0,y:300,th:Math.PI/2}};}},
+ persimpangan:{name:'Persimpangan (+)',build:()=>({
+   lines:[{pts:roundRect(130,100,770,500,70),closed:true},{pts:[[130,300],[770,300]],closed:false},{pts:[[450,100],[450,500]],closed:false}],
+   start:{x:250,y:100,th:0}})},
+ bercabang:{name:'Bercabang (bypass)',build:()=>({
+   lines:[{pts:roundRect(130,140,770,500,70),closed:true},
+          {pts:smoothOpen([[300,140],[335,95],[390,70],[510,70],[565,95],[600,140]]),closed:false}],
+   start:{x:200,y:140,th:0}})},
+ sirkuit:{name:'Sirkuit teknikal',build:()=>({lines:[{pts:smoothClosed([[150,120],[450,85],[760,125],[830,300],[650,335],[700,480],[450,525],[270,480],[420,370],[250,310],[90,250]]),closed:true}]})},
+ zigzag:{name:'Zigzag S-curve',build:()=>({lines:[{pts:smoothClosed([[90,320],[200,120],[320,320],[440,120],[560,320],[680,120],[800,300],[760,500],[460,525],[190,505]]),closed:true}]})}
+};
+
+/* ---------- tabel sensor (sama dengan aplikasi XZERO) ---------- */
+const SENSOR_LIST=[
+"00  Not Use Sensor  OR","01 ----▉▉----▉▉---- EQ","02 ▉--------------▉ XR","03 ▉▉------------▉▉ XR","04 ▉▉▉----------▉▉▉ XR",
+"05 ▉▉▉▉--------▉▉▉▉ XR","06 ▉▉▉▉▉------▉▉▉▉▉ XR","07 ▉▉▉▉▉▉----▉▉▉▉▉▉ XR","08 ▉▉-------------- OR","09 ▉▉▉------------- OQ",
+"10 ▉▉▉▉------------ OR","11 ▉▉▉▉▉----------- 0R","12 ▉▉▉▉▉▉---------- 0R","13 --▉▉▉----------- OR","14 ▉▉----▉▉▉▉------ XR",
+"15 -▉▉---▉▉▉▉------ XR","16 --▉▉--▉▉▉▉------ XR","17 ---▉▉-▉▉▉▉------ XR","18 --------------▉▉ OR","19 -------------▉▉▉ OR",
+"20 ------------▉▉▉▉ OR","21 -----------▉▉▉▉▉ OR","22 ----------▉▉▉▉▉▉ OR","23 -----------▉▉▉-- OR","24 ------▉▉▉▉----▉▉ XR",
+"25 ------▉▉▉▉---▉▉- XR","26 ------▉▉▉▉--▉▉-- XR","27 ------▉▉▉▉-▉▉--- XR","28 ▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉ XN","29 ---------------- XN",
+"30 ▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉ OR","31 ▉--------------- OR","32 -▉-------------- OR","33 --▉------------- OR","34 ---▉------------ OR",
+"35 ----▉----------- OR","36 -----▉---------- OR","37 ------▉--------- OR","38 -------▉-------- OR","39 --------▉------- OR",
+"40 ---------▉------ OR","41 ----------▉----- OR","42 -----------▉---- OR","43 ------------▉--- OR","44 -------------▉-- OR",
+"45 --------------▉- OR","46 ---------------▉ OR"];
+const SENS=SENSOR_LIST.map((s,i)=>{
+  if(i===0)return {n:0,marks:new Array(16).fill(false),logic:'OR',text:s};
+  const m=s.match(/^(\d\d) ([▉-]{16}) (\S+)/);
+  const marks=[...m[2]].map(c=>c==='▉');
+  const groups=[];let cur=null;marks.forEach((v,k)=>{if(v){if(!cur){cur=[];groups.push(cur);}cur.push(k);}else cur=null;});
+  return {n:i,marks,logic:m[3],groups,text:s};
+});
+function sensorNum(text){const n=parseInt(String(text||'').slice(0,2),10);return isNaN(n)||n<0||n>46?0:n;}
+/* Asumsi logika:  OR/OQ/0R = salah satu sensor bertanda aktif
+   XR/EQ = tiap kelompok sensor bertanda (berurutan) minimal satu aktif (semua kelompok terpenuhi)
+   XN = persis sama (sensor bertanda aktif, lainnya mati) */
+function sensorCond(n,on){
+  if(n===0)return true;
+  const e=SENS[n];if(!e)return true;
+  if(e.logic==='XN')return e.marks.every((m,i)=>on[i]===m);
+  if(e.logic==='XR'||e.logic==='EQ')return e.groups.every(g=>g.some(i=>on[i]));
+  return e.marks.some((m,i)=>m&&on[i]);
+}
+
+/* ---------- parameter ---------- */
+const DEFAULT_PID=[[.05,0,.010],[.07,0,.014],[.09,0,.018],[.12,0,.026],[.16,0,.036]];
+function defaults(){return {
+  mass:220,vmax:2.0,force:1.2,mu:.9,spacing:5,ahead:38,
+  pid:DEFAULT_PID.map(a=>a.slice()),order:'auto',edge:false,timeout:60
+};}
+
+/* ---------- baris program ---------- */
+const num=(v,d=0)=>{const n=parseFloat(v);return isNaN(n)?d:n;};
+function parseRow(r){
+  return {sensor:sensorNum(r[1]),action:(r[2]||'PAUSE').trim(),L:num(r[3]),R:num(r[4]),delay:num(r[5]),
+    mode:r[6]||'AUTO',fan:r[7]==='ON',gripper:r[8]||'STANDBY',cal:num(r[9],1),line:r[10]||'BLACK',pid:clamp(num(r[11],3),1,5),
+    follow:r[12]||'FL.CENTER',speedA:num(r[13]),timerA:num(r[14]),typeSB:r[15]||'LOCK',speedB:num(r[16]),timerB:num(r[17])};
+}
+
+/* ---------- state ---------- */
+function newState(track,p,prog){
+  const s=track.start;
+  return {track,p,prog,t:0,tick:0,dist:0,
+    r:{x:s.x,y:s.y,th:s.th,vL:0,vR:0,vlat:0,vf:0,wz:0},
+    pwmL:0,pwmR:0,I:0,ePrev:0,lastE:0,e:0,lost:false,sens:[],on:new Array(NS).fill(false),
+    pc:{plan:0,idx:0},step:null,running:false,done:false,status:'siap',msg:'',log:[],
+    hold:'LOCK',fan:false,gripper:'STANDBY',offT:0,stepCount:0};
+}
+function sensorsRead(S,line){
+  const {r,p,track}=S,c=Math.cos(r.th),s=Math.sin(r.th),arr=[];
+  const same=(line||'BLACK')===track.lineColor;
+  for(let i=0;i<NS;i++){
+    const off=(i-(NS-1)/2)*p.spacing,x=r.x+c*p.ahead-s*off,y=r.y+s*p.ahead+c*off;
+    const v=clamp((HW+2-dist(track,x,y))/4,0,1);
+    const a=same?v:1-v;
+    arr.push({x,y,v:a});S.on[i]=a>0.5;
+  }
+  S.sens=arr;
+}
+function lineError(S,follow){
+  const a=S.sens.map(q=>q.v),on=S.on,c=(NS-1)/2;
+  let lo=0,hi=NS-1,any=on.some(Boolean);
+  if(any&&follow!=='FL.CENTER'){
+    const blobs=[];let cur=null;
+    for(let i=0;i<NS;i++){if(on[i]){if(!cur){cur=[i,i];blobs.push(cur);}else cur[1]=i;}else cur=null;}
+    const b=follow==='FL.LEFT'?blobs[0]:blobs[blobs.length-1];lo=b[0];hi=b[1];
+  }
+  let sum=0,w=0;for(let i=lo;i<=hi;i++){sum+=a[i];w+=a[i]*(i-c);}
+  if(any&&sum>0.05){S.lost=false;S.lastE=w/sum;return S.lastE;}
+  S.lost=true;return (S.lastE>=0?1:-1)*(c+1);
+}
+
+/* ---------- interpreter ---------- */
+function logStep(S,txt){S.log.push({t:S.t,plan:S.pc.plan,idx:S.pc.idx,txt});if(S.log.length>200)S.log.shift();}
+function stop(S,status,msg){S.running=false;S.done=true;S.status=status;S.msg=msg||'';S.step=null;S.pwmL=S.pwmR=0;}
+function beginStep(S){
+  const rows=S.prog[S.pc.plan]||[];
+  const raw=rows[S.pc.idx];
+  if(!raw){
+    if(S.pc.idx>=rows.length&&S.pc.idx>0&&S.pc.idx===rows.length)return stop(S,'selesai','Program selesai (akhir Plan '+(S.pc.plan+1)+')');
+    return stop(S,'error','Plan '+(S.pc.plan+1)+' index '+S.pc.idx+' tidak ada');
+  }
+  const row=parseRow(raw);
+  const st={row,t0:S.t,d0:S.dist,ph:0,seenOff:!S.p.edge,phT:S.t,phD:S.dist};
+  const o=S.p.order,a=row.action;
+  const sensFirst=o==='sensor'||(o==='auto'&&(a!=='TURN LEFT'&&a!=='TURN RIGHT'));
+  st.phases=sensFirst?['sensor','delay']:['delay','sensor'];
+  S.step=st;S.I=0;S.ePrev=S.lastE;S.stepCount++;
+  S.fan=row.fan;S.gripper=row.gripper;S.hold=row.typeSB;
+  logStep(S,a+(row.sensor?' · sensor '+row.sensor:'')+(row.delay?' · '+row.delay+(a==='FORWARD'||a==='BACKWARD'?' cm':' ms'):''));
+}
+function gotoNext(S){S.pc.idx++;S.step=null;}
+function stepFinish(S){
+  const st=S.step;
+  // TYPE SB: FREE → roda dibiarkan meluncur saat berhenti, LOCK → direm
+  S.hold=st.row.typeSB;gotoNext(S);
+}
+function phaseDone(S,st,dtc){
+  const row=st.row,ph=st.phases[st.ph];
+  if(ph==='sensor'){
+    if(row.sensor===0)return true;
+    const c=sensorCond(row.sensor,S.on);
+    if(!c)st.seenOff=true;
+    if(c&&st.seenOff)return true;
+    if(S.t-st.phT>S.p.timeout){stop(S,'error','Sensor '+row.sensor+' tidak pernah terpicu (timeout '+S.p.timeout+' s) di Plan '+(S.pc.plan+1)+' index '+S.pc.idx);}
+    return false;
+  }
+  if(row.delay<=0)return true;
+  const a=row.action;
+  if(a==='FORWARD'||a==='BACKWARD')return (S.dist-st.phD)>=row.delay*PXCM;
+  return (S.t-st.phT)*1000>=row.delay;
+}
+function drive(S,st,dtc){
+  const row=st.row,a=row.action;
+  if(a==='PAUSE'){S.pwmL=S.pwmR=0;return;}
+  let L=row.L,R=row.R,scale=1;
+  const phase=st.phases[st.ph];
+  const dTravel=S.dist-st.d0;
+  // zona kecepatan A (awal) / B (pengereman, hanya TYPE SB=LOCK)
+  if(a==='FORWARD'||a==='BACKWARD'){
+    let tgt=null;
+    if(row.timerA>0&&dTravel<row.timerA*PXCM)tgt=row.speedA;
+    if(row.typeSB==='LOCK'&&row.timerB>0&&phase==='delay'&&row.delay>0&&(row.delay*PXCM-(S.dist-st.phD))<=row.timerB*PXCM)tgt=row.speedB;
+    if(tgt!==null){const avg=Math.max(1,(Math.abs(L)+Math.abs(R))/2);scale=tgt/avg;}
+  }
+  const auto=a==='FORWARD'&&row.mode==='AUTO'&&(L+R)>0;
+  if(auto){
+    sensorsRead(S,row.line);
+    const e=lineError(S,row.follow),pid=S.p.pid[row.pid-1];
+    S.I=clamp(S.I+e*dtc,-3,3);const D=(e-S.ePrev)/dtc;S.ePrev=e;S.e=e;
+    const base=(L+R)/2*scale/255,u=pid[0]*e+pid[1]*S.I+pid[2]*D;
+    S.pwmL=clamp(base+u,-1,1);S.pwmR=clamp(base-u,-1,1);
+  }else{S.pwmL=clamp(L*scale/255,-1,1);S.pwmR=clamp(R*scale/255,-1,1);}
+}
+function control(S,dtc){
+  if(!S.step){beginStep(S);if(!S.step)return;}
+  let st=S.step,row=st.row;
+  sensorsRead(S,row.line);
+  if(row.action==='JUMP TO PLAN'){
+    const ok=row.sensor===0||sensorCond(row.sensor,S.on);
+    if(ok){
+      const pl=Math.round(row.L)-1,ix=Math.round(row.R);
+      if(pl<0||pl>11)return stop(S,'error','JUMP: Plan tujuan harus 1–12');
+      logStep(S,'JUMP → Plan '+(pl+1)+' index '+ix);
+      S.pc={plan:pl,idx:ix};S.step=null;
+    }else{logStep(S,'JUMP dilewati (sensor tidak cocok)');gotoNext(S);}
+    return;
+  }
+  drive(S,st,dtc);
+  let guard=0;
+  while(S.step&&guard++<3&&st.ph<st.phases.length&&phaseDone(S,st,dtc)){
+    st.ph++;st.phT=S.t;st.phD=S.dist;st.seenOff=!S.p.edge;
+  }
+  if(S.step&&st.ph>=st.phases.length)stepFinish(S);
+}
+function step(S,dt){
+  const {r,p}=S;
+  if(S.running){
+    if(S.tick%CTRL_EVERY===0)control(S,dt*CTRL_EVERY);
+    S.tick++;S.t+=dt;
+  }else{S.pwmL=S.pwmR=0;}
+  const m=p.mass/1000,vmax=p.vmax*PXM,amax=Math.min(p.force/m*PXM,p.mu*G),tau=0.06;
+  const idle=!S.running||!S.step;
+  if(idle&&S.hold==='FREE'){r.vL*=1-dt/0.9;r.vR*=1-dt/0.9;}
+  else{
+    r.vL+=clamp((S.pwmL*vmax-r.vL)/tau,-amax,amax)*dt;
+    r.vR+=clamp((S.pwmR*vmax-r.vR)/tau,-amax,amax)*dt;
+  }
+  const WB=40,vf=(r.vL+r.vR)/2,wz=(r.vL-r.vR)/WB;
+  r.vf=vf;r.wz=wz;
+  r.vlat+=-vf*wz*dt;
+  r.vlat+=clamp(-r.vlat/dt,-p.mu*G,p.mu*G)*dt;
+  r.th+=wz*dt;
+  const c=Math.cos(r.th),s=Math.sin(r.th);
+  r.x+=(vf*c-r.vlat*s)*dt;r.y+=(vf*s+r.vlat*c)*dt;
+  S.dist+=Math.abs(vf)*dt;
+  if(S.running&&S.step&&S.step.row.action==='FORWARD'&&S.step.row.mode==='AUTO'){
+    if(S.lost&&dist(S.track,r.x,r.y)>3*HW)S.offT+=dt;else S.offT=Math.max(0,S.offT-dt);
+    if(S.offT>2)stop(S,'error','Robot keluar dari garis (Plan '+(S.pc.plan+1)+' index '+S.pc.idx+')');
+  }
+}
+function defaultRow(i){return [String(i),'00  Not Use Sensor  OR','PAUSE','0','0','0','AUTO','OFF','STANDBY','1','BLACK','3','FL.CENTER','100','0','LOCK','20','0'];}
+return {W,H,HW,PXM,PXCM,DT,NS,TRACK_DEFS,buildTrack,smoothClosed,resample,dist,defaults,newState,step,sensorsRead,SENS,SENSOR_LIST,sensorCond,sensorNum,defaultRow,parseRow,clamp,DEFAULT_PID};
+})();
+// ===== END CORE =====
+
+</script>
+<script>
+(function(){
+const {W,H,HW,PXM,PXCM,DT,NS,TRACK_DEFS,SENSOR_LIST}=Sim;
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1);
+cv.width=W*dpr;cv.height=H*dpr;cv.style.aspectRatio=W+'/'+H;
+const P=Sim.defaults();
+const plans=Array.from({length:12},()=>[]);
+let curPlan=0,selRow=-1,trackKey='oval',track=null,bg=null,S=null,trail=[],speedMul=1,customDef=null;
+let drawing=false,drawPts=[],dragging=false,stepMode=false,stepFrom=0;
+const startPose={};
+
+/* ---------- util ---------- */
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('show'),3200);}
+const ACTIONS=['PAUSE','FORWARD','TURN LEFT','TURN RIGHT','JUMP TO PLAN','BACKWARD'];
+const COLS=[
+ {h:'INDEX',c:'#85C5E2'},{h:'MOTION SENSOR',c:'#C3E1F7',t:'sensor'},
+ {h:'ACTION',c:'#EEF1C1',t:'sel',o:ACTIONS},
+ {h:'LEFT',c:'#EEF1C1',t:'num',min:-255,max:255},{h:'RIGHT',c:'#EEF1C1',t:'num',min:-255,max:255},{h:'DELAY',c:'#EEF1C1',t:'num',min:0,max:9999},
+ {h:'MODE ACTION',c:'#EEF1C1',t:'sel',o:['AUTO','MANUAL']},
+ {h:'FAN',c:'#BF52F1',t:'sel',o:['OFF','ON']},{h:'GRIPPER',c:'#BF52F1',t:'sel',o:['STANDBY','DROP','PICK 1','PICK 2','PICK 3']},
+ {h:'CAL',c:'#A08C8A',t:'sel',o:['1','2','3','4','5']},{h:'LINE',c:'#A08C8A',t:'sel',o:['BLACK','WHITE']},
+ {h:'PID',c:'#A08C8A',t:'sel',o:['1','2','3','4','5']},{h:'FOLLOW',c:'#A08C8A',t:'sel',o:['FL.CENTER','FL.LEFT','FL.RIGHT']},
+ {h:'SPEED A',c:'#A1C7E2',t:'num',min:0,max:255},{h:'TIMER A',c:'#A1C7E2',t:'num',min:0,max:9999},
+ {h:'TYPE SB',c:'#FFA467',t:'sel',o:['LOCK','FREE']},{h:'SPEED B',c:'#FFA467',t:'num',min:0,max:255},{h:'TIMER B',c:'#FFA467',t:'num',min:0,max:9999}
+];
+const RESTORE={6:'AUTO',7:'OFF',8:'STANDBY',9:'1',10:'BLACK',11:'3',12:'FL.CENTER',13:'100',14:'0',15:'LOCK',16:'20',17:'0'};
+const ACT_DEF={'FORWARD':['60','60','10'],'BACKWARD':['-60','-60','10'],'TURN LEFT':['-60','160','100'],'TURN RIGHT':['160','-60','100'],'PAUSE':['0','0','0']};
+function applyRule(row,prev){
+  const a=row[2];
+  if(a==='JUMP TO PLAN'){row[3]='1';row[4]='0';row[5]='0';for(let c=6;c<18;c++)row[c]='-';row[1]=row[1]||SENSOR_LIST[0];return;}
+  if(prev==='JUMP TO PLAN')for(const c in RESTORE)row[c]=RESTORE[c];
+  if(ACT_DEF[a]&&prev!==undefined&&prev!==a){[row[3],row[4],row[5]]=ACT_DEF[a];}
+  if(row[15]==='FREE')row[17]='-';else if(row[17]==='-')row[17]='0';
+}
+function newRow(i,action){const r=Sim.defaultRow(i);if(action){const p=r[2];r[2]=action;applyRule(r,p);}return r;}
+function renumber(pl){plans[pl].forEach((r,i)=>r[0]=String(i));}
+
+/* ---------- contoh program ---------- */
+function R(o){const r=Sim.defaultRow(0);const m={sensor:1,action:2,L:3,R:4,delay:5,mode:6,fan:7,grip:8,cal:9,line:10,pid:11,follow:12,sa:13,ta:14,sb:15,sbs:16,tb:17};for(const k in o)r[m[k]]=String(k==='sensor'?SENSOR_LIST[o[k]]:o[k]);return r;}
+const EXAMPLES={
+ follow:{track:'oval',plans:{0:[
+   R({action:'FORWARD',L:60,R:60,delay:0}),
+   R({action:'FORWARD',L:110,R:110,delay:300,sa:70,ta:40,pid:3}),
+   R({action:'PAUSE',delay:1200,fan:'ON',grip:'PICK 1',sb:'FREE',tb:'-'}),
+   R({action:'FORWARD',L:170,R:170,delay:500,pid:4,sbs:60,tb:60}),
+   R({action:'PAUSE',delay:300})]}},
+ junction:{track:'persimpangan',plans:{0:[
+   R({action:'FORWARD',L:60,R:60,delay:0}),
+   R({action:'FORWARD',L:80,R:80,sensor:22,delay:2}),
+   R({action:'PAUSE',delay:300}),
+   R({action:'TURN RIGHT',L:100,R:-100,delay:100,sensor:38}),
+   R({action:'PAUSE',delay:300}),
+   R({action:'FORWARD',L:80,R:80,sensor:28,delay:2}),
+   R({action:'PAUSE',delay:300}),
+   R({action:'TURN RIGHT',L:100,R:-100,delay:100,sensor:38}),
+   R({action:'PAUSE',delay:300}),
+   R({action:'FORWARD',L:80,R:80,sensor:28,delay:2}),
+   R({action:'PAUSE',delay:800,fan:'ON',grip:'DROP'}),
+   R({action:'JUMP TO PLAN',L:2,R:0})],
+  1:[R({action:'FORWARD',L:60,R:60,delay:0}),
+   R({action:'TURN LEFT',L:-100,R:100,delay:700,fan:'ON',grip:'PICK 1'}),
+   R({action:'PAUSE',delay:300})]}},
+ fork:{track:'bercabang',plans:{0:[
+   R({action:'FORWARD',L:60,R:60,delay:0}),
+   R({action:'FORWARD',L:100,R:100,delay:60,follow:'FL.LEFT',pid:3}),
+   R({action:'FORWARD',L:100,R:100,delay:400,follow:'FL.LEFT',pid:3}),
+   R({action:'PAUSE',delay:500})]}}
+};
+function loadExample(k){
+  const e=EXAMPLES[k];if(!e)return;
+  for(let i=0;i<12;i++)plans[i]=(e.plans[i]||[]).map((r,k)=>normRow(r,k));
+  curPlan=0;selRow=-1;
+  if(trackKey!==e.track){$('selTrack').value=e.track;pickTrack(e.track);}
+  renderTabs();renderEditor();resetSim();
+}
+
+/* ---------- impor / ekspor ---------- */
+const enumFix={
+ 6:v=>/^MAN/i.test(v)?'MANUAL':'AUTO',
+ 7:v=>(v==='ON'||v==='1')?'ON':'OFF',
+ 8:v=>['STANDBY','DROP','PICK 1','PICK 2','PICK 3'].includes(v)?v:'STANDBY',
+ 9:v=>/^[1-5]$/.test(v)?v:'1',
+ 10:v=>(v==='WHITE'||v==='1')?'WHITE':'BLACK',
+ 11:v=>/^[1-5]$/.test(v)?v:'3',
+ 12:v=>({'1':'FL.LEFT','2':'FL.RIGHT'}[v])||(['FL.LEFT','FL.RIGHT'].includes(v)?v:'FL.CENTER'),
+ 15:v=>(v==='FREE'||v==='1')?'FREE':'LOCK'
+};
+let fixed=0;
+function normRow(src,i){
+  const r=Sim.defaultRow(i);
+  for(let c=0;c<18;c++){const v=src[c];if(v!==undefined&&v!==null&&String(v)!=='')r[c]=String(v);}
+  r[0]=String(i);
+  if(!ACTIONS.includes(r[2])){r[2]='PAUSE';fixed++;}
+  if(!SENSOR_LIST.includes(r[1])){const n=Sim.sensorNum(r[1]);r[1]=SENSOR_LIST[n];}
+  if(r[2]!=='JUMP TO PLAN'){for(const c in enumFix){const nv=enumFix[c](r[c]);if(nv!==r[c]){r[c]=nv;fixed++;}}}
+  if(r[2]==='JUMP TO PLAN'){r[3]=String(Sim.clamp(Math.round(parseFloat(r[3]))||1,1,12));r[4]=String(Sim.clamp(Math.round(parseFloat(r[4]))||0,0,120));r[5]='0';for(let c=6;c<18;c++)r[c]='-';}
+  else if(r[15]==='FREE')r[17]='-';
+  return r;
+}
+function setProgram(arr){
+  fixed=0;
+  for(let i=0;i<12;i++)plans[i]=(arr[i]||[]).map((r,k)=>normRow(r,k));
+  curPlan=Math.max(0,plans.findIndex(p=>p.length));selRow=-1;
+  renderTabs();renderEditor();resetSim();
+  const n=plans.reduce((a,p)=>a+p.length,0);
+  toast('Program dimuat: '+n+' index'+(fixed?' ('+fixed+' nilai disesuaikan ke pilihan yang valid)':''));
+}
+function fromWorkbook(wb){
+  const arr=Array.from({length:12},()=>[]);
+  const names=wb.SheetNames.map(n=>({n,m:n.match(/^plan\s*(\d+)$/i)})).filter(x=>x.m);
+  if(!names.length)throw new Error('Tidak ada sheet bernama Plan1…Plan12');
+  const zero=names.some(x=>+x.m[1]===0);
+  for(const {n,m} of names){
+    const k=+m[1]-(zero?0:1);if(k<0||k>11)continue;
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''});
+    arr[k]=rows.slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+  }
+  return arr;
+}
+function fromJson(o){
+  if(Array.isArray(o)&&Array.isArray(o[0]))return o.length>12&&typeof o[0][0]==='string'?[o]:o;
+  if(o&&Array.isArray(o.plans))return o.plans;
+  if(o&&o.plans&&typeof o.plans==='object'){const a=Array.from({length:12},()=>[]);for(const k in o.plans)a[+k-1]=o.plans[k];return a;}
+  if(o&&Array.isArray(o.indexes)){const a=Array.from({length:12},()=>[]);a[o.plan||0]=o.indexes;return a;}
+  throw new Error('Format JSON tidak dikenali');
+}
+$('bImport').onclick=()=>$('fileIn').click();
+$('fileIn').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    if(/\.json$/i.test(f.name))setProgram(fromJson(JSON.parse(await f.text())));
+    else{if(typeof XLSX==='undefined')throw new Error('Pustaka xlsx belum termuat (periksa koneksi internet)');
+      setProgram(fromWorkbook(XLSX.read(await f.arrayBuffer(),{type:'array'})));}
+  }catch(err){toast('Gagal impor: '+err.message);}
+  e.target.value='';
+};
+$('bJsonLoad').onclick=()=>{try{setProgram(fromJson(JSON.parse($('jsonBox').value)));}catch(err){toast('JSON tidak valid: '+err.message);}};
+function exportObj(){return {format:'xzero-plans',plans:plans.map(p=>p.map(r=>r.slice()))};}
+$('bCopy').onclick=async()=>{
+  const txt=JSON.stringify(exportObj());
+  try{await navigator.clipboard.writeText(txt);toast('JSON program disalin ke clipboard');}
+  catch(e){$('jsonBox').value=txt;document.querySelector('.editor details').open=true;toast('Clipboard ditolak — JSON ditaruh di kotak di bawah editor');}
+};
+const HEADERS=COLS.map(c=>c.h);
+$('bXlsx').onclick=()=>{
+  try{
+    if(typeof XLSX==='undefined')throw new Error('pustaka xlsx belum termuat');
+    const wb=XLSX.utils.book_new();
+    plans.forEach((p,i)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([HEADERS,...p]),'Plan'+(i+1)));
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'application/octet-stream'}));a.download='program_xzero.xlsx';
+    document.body.appendChild(a);a.click();a.remove();
+    toast('Jika unduhan tidak muncul (mode pratinjau), gunakan “Salin JSON”.');
+  }catch(e){toast('Gagal ekspor: '+e.message);}
+};
+
+/* ---------- editor ---------- */
+const tabsEl=$('tabs'),tbl=$('planTbl');
+function renderTabs(){
+  tabsEl.innerHTML='';
+  for(let i=0;i<12;i++){
+    const b=document.createElement('button');b.textContent='Plan '+(i+1)+(plans[i].length?' ·'+plans[i].length:'');
+    if(i===curPlan)b.classList.add('cur');
+    if(S&&S.running&&S.pc.plan===i)b.classList.add('run');
+    b.onclick=()=>{curPlan=i;selRow=-1;renderTabs();renderEditor();};
+    tabsEl.appendChild(b);
+  }
+}
+let rowEls=[];
+function renderEditor(){
+  tbl.innerHTML='';rowEls=[];
+  const th=document.createElement('thead'),tr=document.createElement('tr');
+  COLS.forEach(c=>{const h=document.createElement('th');h.textContent=c.h;h.style.background=c.c;tr.appendChild(h);});
+  th.appendChild(tr);tbl.appendChild(th);
+  const tb=document.createElement('tbody');tbl.appendChild(tb);
+  const rows=plans[curPlan];
+  if(!rows.length){const t=document.createElement('tr');t.innerHTML='<td colspan="18" class="note" style="padding:14px">Plan kosong — klik “＋ Tambah index”, atau impor program.</td>';tb.appendChild(t);}
+  rows.forEach((row,ri)=>{
+    const t=document.createElement('tr');rowEls.push(t);if(ri===selRow)t.classList.add('sel');
+    const jump=row[2]==='JUMP TO PLAN';
+    COLS.forEach((col,ci)=>{
+      const td=document.createElement('td');
+      if(ci===0){td.className='idx';td.textContent=ri;td.onclick=()=>{selRow=ri;rowEls.forEach((e,k)=>e.classList.toggle('sel',k===ri));$('selInfo').textContent='Index '+ri+' dipilih';};}
+      else{
+        let el;
+        if(col.t==='sensor'||col.t==='sel'){
+          el=document.createElement('select');
+          const opts=col.t==='sensor'?SENSOR_LIST:col.o;
+          opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;el.appendChild(op);});
+          if(col.t==='sensor')el.classList.add('sn');
+          el.value=row[ci];
+          if(el.value!==row[ci]&&row[ci]==='-'){const op=document.createElement('option');op.value='-';op.textContent='-';el.appendChild(op);el.value='-';}
+        }else{
+          el=document.createElement('input');el.type=row[ci]==='-'?'text':'number';el.min=col.min;el.max=col.max;el.value=row[ci];
+        }
+        const locked=(ri===0&&(ci===1||ci===2))||(jump&&ci>=5)||(jump&&false)||(row[15]==='FREE'&&ci===17&&!jump);
+        if(locked||(jump&&ci>=5))el.disabled=true;
+        if(jump&&ci===3){el.min=1;el.max=12;}if(jump&&ci===4){el.min=0;el.max=120;}
+        const hnd=ev=>{
+          const prev=row[ci];row[ci]=el.value;
+          if(ci===2||ci===15){applyRule(row,ci===2?prev:undefined);if(ci===15&&el.value==='LOCK'&&row[17]==='-')row[17]='0';renderEditor();}
+        };
+        if(el.tagName==='SELECT')el.onchange=hnd;else el.oninput=hnd;
+        td.appendChild(el);
+        if(ci===5&&!jump){const u=document.createElement('span');u.className='unit';u.dataset.r=ri;td.appendChild(u);}
+        if(ci===14||ci===17){if(!jump&&row[ci]!=='-'){const u=document.createElement('span');u.className='unit';u.textContent='cm';td.appendChild(u);}}
+      }
+      t.appendChild(td);
+    });
+    tb.appendChild(t);
+  });
+  updateUnits();lastHL=null;
+}
+function updateUnits(){
+  tbl.querySelectorAll('span.unit[data-r]').forEach(u=>{const r=plans[curPlan][+u.dataset.r];u.textContent=(r[2]==='FORWARD'||r[2]==='BACKWARD')?'cm':'ms';});
+}
+$('bAdd').onclick=()=>{
+  const rows=plans[curPlan];
+  const at=selRow>=0?selRow+1:rows.length;
+  const nr=rows.length===0?(()=>{const r=Sim.defaultRow(0);r[2]='FORWARD';r[3]='60';r[4]='60';return r;})():newRow(at,'FORWARD');
+  rows.splice(at,0,nr);renumber(curPlan);selRow=at;renderTabs();renderEditor();
+};
+$('bDup').onclick=()=>{if(selRow<0)return toast('Pilih baris dulu');const rows=plans[curPlan];rows.splice(selRow+1,0,rows[selRow].slice());renumber(curPlan);selRow++;renderEditor();};
+function mv(d){const rows=plans[curPlan],a=selRow,b=a+d;if(a<0||b<0||b>=rows.length)return;if(a===0||b===0)return toast('Index 0 tidak bisa dipindah');[rows[a],rows[b]]=[rows[b],rows[a]];renumber(curPlan);selRow=b;renderEditor();}
+$('bUp').onclick=()=>mv(-1);$('bDown').onclick=()=>mv(1);
+$('bDel').onclick=()=>{if(selRow<=0)return toast(selRow===0?'Index 0 tidak bisa dihapus':'Pilih baris dulu');plans[curPlan].splice(selRow,1);renumber(curPlan);selRow=-1;renderTabs();renderEditor();};
+$('bClear').onclick=()=>{plans[curPlan]=[];selRow=-1;renderTabs();renderEditor();};
+
+/* ---------- pengaturan ---------- */
+const pidBody=$('pidBody');
+P.pid.forEach((v,i)=>{
+  const tr=document.createElement('tr');tr.innerHTML='<th>PID '+(i+1)+'</th>';
+  v.forEach((x,k)=>{const td=document.createElement('td'),inp=document.createElement('input');inp.type='number';inp.step=k===0?'0.005':'0.001';inp.value=x;inp.onchange=()=>{P.pid[i][k]=+inp.value||0;};td.appendChild(inp);tr.appendChild(td);});
+  pidBody.appendChild(tr);
+});
+[['mass','Bobot robot (g)',80,600,5,0],['vmax','Kecepatan di PWM 255 (m/s)',.5,3.5,.05,2],['force','Gaya dorong motor (N)',.3,4,.05,2],['mu','Grip ban (μ)',.2,1.6,.02,2],['spacing','Jarak antar sensor (px)',3,8,1,0],['ahead','Jarak sensor ke as (px)',15,60,1,0]].forEach(([k,l,mn,mx,st,dec])=>{
+  const row=document.createElement('div');row.className='row';
+  row.innerHTML='<label>'+l+'</label><output>'+(+P[k]).toFixed(dec)+'</output><input type="range" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+P[k]+'">';
+  const inp=row.querySelector('input'),out=row.querySelector('output');
+  inp.oninput=()=>{P[k]=+inp.value;out.textContent=(+inp.value).toFixed(dec);};
+  $('gRobot').appendChild(row);
+});
+$('selOrder').onchange=e=>P.order=e.target.value;
+$('cEdge').onchange=e=>P.edge=e.target.checked;
+
+/* ---------- lintasan ---------- */
+const sel=$('selTrack');
+for(const k in TRACK_DEFS){const o=document.createElement('option');o.value=k;o.textContent=TRACK_DEFS[k].name;sel.appendChild(o);}
+const oc=document.createElement('option');oc.value='custom';oc.textContent='Gambar sendiri';oc.disabled=true;sel.appendChild(oc);
+function drawBg(){
+  bg=document.createElement('canvas');bg.width=W*dpr;bg.height=H*dpr;
+  const g=bg.getContext('2d');g.scale(dpr,dpr);
+  const white=track.lineColor==='WHITE';
+  g.fillStyle=white?'#1b1f25':'#eceae3';g.fillRect(0,0,W,H);
+  g.strokeStyle=white?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';g.lineWidth=1;
+  for(let x=0;x<=W;x+=50){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();}
+  for(let y=0;y<=H;y+=50){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}
+  g.lineJoin='round';g.lineCap='butt';g.strokeStyle=white?'#f4f4f0':'#15181d';g.lineWidth=HW*2;
+  for(const ln of track.lines){g.beginPath();ln.pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));if(ln.closed)g.closePath();g.stroke();}
+}
+function loadTrackDef(def,key){
+  track=Sim.buildTrack(def);track.lineColor=$('selLine').value;
+  if(startPose[key])track.start=Object.assign({},startPose[key]);
+  drawBg();resetSim();
+}
+function pickTrack(k){
+  trackKey=k;
+  loadTrackDef(k==='custom'?customDef:TRACK_DEFS[k].build(),k);
+}
+sel.onchange=()=>pickTrack(sel.value);
+$('selLine').onchange=()=>{track.lineColor=$('selLine').value;drawBg();if(S)S.track=track;};
+
+/* ---------- simulasi ---------- */
+function resetSim(){
+  S=Sim.newState(track,P,plans);
+  S.p=P;trail=[];lastHL=null;
+  Sim.sensorsRead(S,track.lineColor);
+  $('bStart').textContent='▶ Jalankan';$('bStart').classList.add('pri');
+  stepMode=false;updateUI();
+}
+function startPause(){
+  if(drawing)return;
+  if(S.done){resetSim();}
+  S.running=!S.running;
+  if(S.running){S.status='berjalan';S.msg='';}else S.status='jeda';
+  stepMode=false;
+  $('bStart').textContent=S.running?'⏸ Jeda':'▶ Lanjut';
+}
+$('bStart').onclick=startPause;$('bReset').onclick=resetSim;
+$('bStep').onclick=()=>{if(drawing)return;if(S.done)resetSim();S.running=true;S.status='berjalan';stepMode=true;stepFrom=S.stepCount;$('bStart').textContent='⏸ Jeda';};
+$('selSpeed').onchange=e=>speedMul=+e.target.value;
+$('selExample').onchange=e=>{loadExample(e.target.value);e.target.value='';};
+addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();startPause();}});
+function rot(d){if(S.running)return;S.r.th+=d*Math.PI/180;startPose[trackKey]={x:S.r.x,y:S.r.y,th:S.r.th};track.start=Object.assign({},startPose[trackKey]);Sim.sensorsRead(S,track.lineColor);}
+$('bRotL').onclick=()=>rot(-15);$('bRotR').onclick=()=>rot(15);
+
+/* gambar lintasan & seret robot */
+$('bDraw').onclick=()=>{drawing=!drawing;drawPts=[];$('bDraw').classList.toggle('on',drawing);$('bDraw').textContent=drawing?'✖ Batal':'✏️ Gambar';if(drawing&&S)S.running=false;};
+function pt(e){const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];}
+let down=false;
+cv.addEventListener('pointerdown',e=>{
+  const p=pt(e);
+  if(drawing){down=true;drawPts=[p];cv.setPointerCapture(e.pointerId);return;}
+  if(!S.running&&Math.hypot(p[0]-S.r.x,p[1]-S.r.y)<45){dragging=true;cv.setPointerCapture(e.pointerId);}
+});
+cv.addEventListener('pointermove',e=>{
+  const p=pt(e);
+  if(drawing&&down){const l=drawPts[drawPts.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>6)drawPts.push(p);}
+  else if(dragging){S.r.x=Sim.clamp(p[0],10,W-10);S.r.y=Sim.clamp(p[1],10,H-10);Sim.sensorsRead(S,track.lineColor);}
+});
+cv.addEventListener('pointerup',()=>{
+  if(dragging){dragging=false;startPose[trackKey]={x:S.r.x,y:S.r.y,th:S.r.th};track.start=Object.assign({},startPose[trackKey]);return;}
+  if(!drawing||!down)return;down=false;
+  if(drawPts.length<25){drawPts=[];return;}
+  let a=Sim.resample(drawPts,8,true).pts;
+  for(let it=0;it<6;it++){const n=a.length;a=a.map((p,i)=>{let x=0,y=0;for(let k=-3;k<=3;k++){const q=a[(i+k+n)%n];x+=q[0];y+=q[1];}return [x/7,y/7];});}
+  customDef={lines:[{pts:Sim.smoothClosed(a.filter((_,i)=>i%2===0)),closed:true}]};
+  sel.querySelector('[value=custom]').disabled=false;sel.value='custom';
+  drawing=false;drawPts=[];$('bDraw').classList.remove('on');$('bDraw').textContent='✏️ Gambar';
+  delete startPose.custom;pickTrack('custom');
+});
+
+/* ---------- render ---------- */
+let ang=0;
+function render(now){
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.drawImage(bg,0,0,W,H);
+  if(drawing){
+    ctx.strokeStyle='#ff6a2b';ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();
+    drawPts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();
+    ctx.fillStyle='rgba(120,120,120,.9)';ctx.font='600 16px system-ui';ctx.fillText('Gambar jalur tertutup dengan mouse/jari, lalu lepas.',20,32);return;
+  }
+  for(const t of trail){ctx.fillStyle=t[2];ctx.fillRect(t[0]-1.2,t[1]-1.2,2.4,2.4);}
+  const r=S.r,p=P;ang+=0.4;
+  ctx.save();ctx.translate(r.x,r.y);ctx.rotate(r.th);
+  // gripper
+  const gp=S.gripper;
+  if(gp!=='STANDBY'){
+    const open=gp==='DROP'?22:9;ctx.fillStyle=gp==='DROP'?'#7a8a9c':'#ffb02b';
+    ctx.fillRect(p.ahead+8,-open-4,16,4);ctx.fillRect(p.ahead+8,open,16,4);
+    if(gp.startsWith('PICK')){ctx.fillStyle='#fff';ctx.font='bold 9px system-ui';ctx.fillText(gp.slice(5),p.ahead+10,3);}
+  }
+  ctx.fillStyle='#111';ctx.fillRect(-9,-27,18,7);ctx.fillRect(-9,20,18,7);
+  ctx.fillStyle='#d9361f';ctx.strokeStyle='#7a1b0f';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(-22,-19,52,38,6);ctx.fill();ctx.stroke();
+  // fan
+  ctx.save();ctx.translate(-4,0);ctx.rotate(S.fan?ang:0);ctx.fillStyle=S.fan?'#2bd4a0':'#ffd7cc';
+  for(let k=0;k<3;k++){ctx.rotate(Math.PI*2/3);ctx.beginPath();ctx.ellipse(6,0,6,2.6,0,0,7);ctx.fill();}
+  ctx.restore();
+  const wbar=(NS-1)*p.spacing+6;ctx.fillStyle='#2a2f38';ctx.fillRect(p.ahead-3,-wbar/2,4,wbar);
+  ctx.restore();
+  for(const s of S.sens){
+    ctx.fillStyle=s.v>0.5?'#32c8e8':'#ff5a5a';ctx.beginPath();ctx.arc(s.x,s.y,1.9,0,7);ctx.fill();
+  }
+  if(S.status==='error'||S.status==='selesai'){
+    ctx.fillStyle=S.status==='error'?'rgba(255,77,94,.95)':'rgba(43,212,160,.95)';ctx.font='700 24px system-ui';ctx.textAlign='center';
+    ctx.fillText(S.status==='error'?'Program berhenti — lihat pesan':'Program selesai',W/2,40);ctx.textAlign='start';
+  }
+}
+function speedColor(v){const f=Math.min(1,Math.abs(v)/(P.vmax*PXM));return 'hsl('+(200-170*f)+',90%,50%)';}
+/* ---------- UI update ---------- */
+const sensBar=$('sensBar');for(let i=0;i<NS;i++)sensBar.appendChild(document.createElement('i'));
+let lastHL=null,lastLog=-1;
+function describe(st){
+  if(!st)return S.done?'—':'Menunggu mulai';
+  const r=st.row,ph=st.phases[st.ph]||'';
+  const unit=(r.action==='FORWARD'||r.action==='BACKWARD')?' cm':' ms';
+  let s=r.action;
+  if(r.action==='JUMP TO PLAN')return s+' → Plan '+r.L+' · index '+r.R;
+  if(ph==='sensor')s+=' · menunggu sensor '+r.sensor;
+  else if(ph==='delay')s+=' · delay '+r.delay+unit;
+  return s;
+}
+function updateUI(){
+  const names={siap:'Siap',berjalan:'Berjalan',jeda:'Jeda',selesai:'Selesai',error:'Berhenti'};
+  const st=$('stStatus');st.textContent=names[S.status]||S.status;st.style.color=S.status==='error'?'var(--bad)':S.status==='berjalan'?'var(--ok)':S.status==='selesai'?'var(--cy)':'';
+  $('stT').textContent=S.t.toFixed(2)+' s';$('stD').textContent=(S.dist/PXCM).toFixed(0)+' cm';
+  $('stV').textContent=(S.r.vf/PXM).toFixed(2)+' m/s';
+  $('stP').textContent=Math.round(S.pwmL*255)+' / '+Math.round(S.pwmR*255);
+  $('stPC').textContent=(S.pc.plan+1)+' · '+S.pc.idx;
+  $('stepNow').textContent=describe(S.step);
+  const m=$('msg');m.textContent=S.msg;m.style.color=S.status==='error'?'var(--bad)':'';
+  [...sensBar.children].forEach((e,i)=>e.classList.toggle('on',!!S.on[i]));
+  if(S.log.length!==lastLog){lastLog=S.log.length;
+    $('log').innerHTML=S.log.slice(-14).reverse().map(l=>'<li>'+l.t.toFixed(1)+'s · <b>P'+(l.plan+1)+' i'+l.idx+'</b> '+l.txt+'</li>').join('');}
+  // sorot baris aktif
+  const key=S.step||S.running?S.pc.plan+':'+S.pc.idx:null;
+  if(key!==lastHL){
+    lastHL=key;
+    if(S.step&&S.pc.plan!==curPlan&&S.running){curPlan=S.pc.plan;renderTabs();renderEditor();lastHL=key;}
+    rowEls.forEach((e,i)=>e.classList.toggle('act',!!key&&S.pc.plan===curPlan&&i===S.pc.idx));
+    const e=rowEls[S.pc.idx];if(key&&e&&S.pc.plan===curPlan){const w=tbl.parentElement;const top=e.offsetTop;if(top<w.scrollTop+30||top>w.scrollTop+w.clientHeight-30)w.scrollTop=top-60;}
+    tabsEl.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('run',S.running&&i===S.pc.plan));
+  }
+}
+let last=performance.now(),acc=0,tc=0;
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(!drawing){
+    acc+=dt*speedMul;let n=0;
+    while(acc>=DT&&n<800){
+      Sim.step(S,DT);acc-=DT;n++;
+      if(S.running&&++tc%8===0){trail.push([S.r.x,S.r.y,speedColor(S.r.vf)]);if(trail.length>3000)trail.shift();}
+      if(stepMode&&S.stepCount!==stepFrom){S.running=false;S.status='jeda';stepMode=false;$('bStart').textContent='▶ Lanjut';break;}
+      if(!S.running)break;
+    }
+    if(n>=800)acc=0;
+    if(S.done&&$('bStart').textContent!=='▶ Jalankan')$('bStart').textContent='▶ Jalankan';
+  }
+  render(now);updateUI();requestAnimationFrame(frame);
+}
+renderTabs();
+pickTrack('oval');
+loadExample('follow');
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
